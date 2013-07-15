@@ -2,7 +2,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 BEGIN {
     use_ok('XML::TreeBuilder');
@@ -25,7 +25,7 @@ my $y = XML::Element->new_from_lol(
     ]
 );
 
-ok( $x->same_as($y) );
+ok( $x->same_as($y), "same as" );
 
 unless ( $ENV{'HARNESS_ACTIVE'} ) {
     $x->dump;
@@ -55,10 +55,25 @@ $y = XML::Element->new_from_lol(
     ]
 );
 
-ok( $x->same_as($y) );
+ok( $x->same_as($y), "same as" );
 
 my $z = XML::TreeBuilder->new( { NoExpand => 1, ErrorContext => 2 } );
+$z->store_cdata(1);
 $z->parsefile("t/parse_test.xml");
-like( $z->as_XML(), qr{<p>Here &amp;foo; There</p>}, 'Decoded ampersand' );
+like( $z->as_XML(), qr{<p>Here &amp;foo; There\n<~cdata text="text">\n&foo;\n</~cdata>\n</p>}, 'Decoded ampersand and cdata' );
+$z->delete_ignorable_whitespace();
+
+my $za = XML::TreeBuilder->new( { NoExpand => 1, ErrorContext => 2 } );
+$za->store_declarations(1);
+$za->parse(qq{<?xml version='1.0' encoding='utf-8' ?>
+<!DOCTYPE para PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+<!ENTITY ent_name "ent_value">
+]>
+<para>Here &amp;foo; There</para>
+}
+);
+
+## BUGBUG isn't this backwards and the DOCTYPE should be before the 'para' tag?
+like( $za->as_XML(), qr{<para><!DOCTYPE para http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd -//OASIS//DTD DocBook XML V4.5//EN 1><!ENTITY ent_name ent_value   >Here &amp;foo; There</para>}, 'Entities' );
 
 __END__

@@ -9,7 +9,7 @@ use XML::Parser  ();
 use Carp;
 use vars qw(@ISA $VERSION);
 
-$VERSION = 4.1;
+$VERSION = $XML::Element::VERSION;
 @ISA     = ('XML::Element');
 
 #==========================================================================
@@ -30,6 +30,7 @@ sub new {
     $self->{'_store_comments'}     = 0;
     $self->{'_store_pis'}          = 0;
     $self->{'_store_declarations'} = 0;
+    $self->{'_store_cdata'}        = 0;
     $self->{'NoExpand'}            = $NoExpand if ($NoExpand);
     $self->{'ErrorContext'}        = $ErrorContext if ($ErrorContext);
 
@@ -45,7 +46,7 @@ sub new {
             'Default' => sub {
 
                 # Stuff unexpanded entities back on to the stack as is.
-                if ( ( $self->{'NoExpand'} ) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
+                if (( $self->{'NoExpand'} ) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
                     $stack[-1]->push_content( $_[1] );
                 }
                 return;
@@ -150,6 +151,8 @@ sub new {
             'Entity' => sub {
                 return unless $self->{'_store_declarations'};
                 shift;
+                ## Need this because different entity types set different array entries.
+                no warnings 'uninitialized'; 
                 ( @stack ? $stack[-1] : $self )->push_content(
                     $self->{'_element_class'}->new(
                         '~declaration',
@@ -159,6 +162,21 @@ sub new {
                 );
                 return;
             },
+
+            CdataStart => sub {
+                return unless $self->{'_store_cdata'};
+                shift;
+                push @stack, $self->{'_element_class'}->new('~cdata', 'text' => $_[1]);
+                $stack[-2]->push_content( $stack[-1] );
+                return;
+            },
+
+            CdataEnd => sub {
+                return unless $self->{'_store_cdata'};
+                pop @stack;
+                return;
+            },
+
         },
         'NoExpand'     => $self->{'NoExpand'},
         'ErrorContext' => $self->{'ErrorContext'},
@@ -179,6 +197,7 @@ sub _elem    # universal accessor...
 sub store_comments     { shift->_elem( '_store_comments',     @_ ); }
 sub store_declarations { shift->_elem( '_store_declarations', @_ ); }
 sub store_pis          { shift->_elem( '_store_pis',          @_ ); }
+sub store_cdata        { shift->_elem( '_store_cdata',        @_ ); }
 
 #==========================================================================
 
@@ -272,12 +291,12 @@ Parameters:
 =item NoExpand
 
     Passed to XML::Parser. Do not Expand external entities.
-    Default: undef
+    Deafult: undef
 
 =item ErrorContext
 
     Passed to XML::Parser. Number of context lines to generate on errors.
-    Default: undef
+    Deafult: undef
 
 =back
 
@@ -316,6 +335,13 @@ This determines whether TreeBuilder will normally store processing
 instructions found while parsing content into C<$root>.
 Currently, this is off (false) by default.
 
+=item $root->store_cdata(value)
+
+This determines whether TreeBuilder will normally store CDATA
+sectitons found while parsing content into C<$root>. Adds a ~cdata node.
+
+Currently, this is off (false) by default.
+
 =back
 
 =head1 SEE ALSO
@@ -340,7 +366,7 @@ merchantability or fitness for a particular purpose.
 =head1 AUTHOR
 
 Current Author:
-	Jeff Fearn C<< <jfearn@cpan.org> >>.
+	Jeff Fearn E<lt>jfearn@cpan.orgE<gt>.
 
 Former Authors:
 	Sean M. Burke, E<lt>sburke@cpan.orgE<gt>

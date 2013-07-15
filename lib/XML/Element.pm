@@ -7,7 +7,7 @@ use HTML::Tagset ();
 use HTML::Element 4.1 ();
 
 use vars qw(@ISA $VERSION);
-$VERSION = 4.1;
+$VERSION = 4.2;
 @ISA     = ('HTML::Element');
 
 # Init:
@@ -133,7 +133,7 @@ merchantability or fitness for a particular purpose.
 =head1 AUTHOR
 
 Current Author:
-	Jeff Fearn C<< <jfearn@cpan.org> >>.
+	Jeff Fearn E<lt>jfearn@cpan.orgE<gt>.
 
 Former Authors:
 	Sean M. Burke, E<lt>sburke@cpan.orgE<gt>

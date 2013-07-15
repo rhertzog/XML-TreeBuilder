@@ -30,6 +30,7 @@ my $builder = $class->new(
     dist_author        => 'Jeff Fearn <jfearn@cpan.org>',
     dist_version_from  => 'lib/XML/Element.pm',
     create_makefile_pl => 'traditional',
+    configure_requires => { 'Module::Build' => 0 },
     build_requires     => {
         'Devel::Cover'        => 0,
         'Module::Build'       => 0,

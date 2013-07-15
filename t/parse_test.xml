@@ -4,5 +4,9 @@
 <!ENTITY % BOOK_ENTITIES SYSTEM "Users_Guide.ent">
 %BOOK_ENTITIES;
 ]>
-<p>Here &amp;foo; There</p>
+<p>Here &amp;foo; There
+<![CDATA[
+&foo;
+]]>
+</p>
 
