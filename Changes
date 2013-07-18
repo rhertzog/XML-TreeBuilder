@@ -1,3 +1,13 @@
+UNRELEASED Jeff Fearn <Jeff.Fearn@gmail.com>
+   Release 4.4
+
+   Add support for using XML Catalogs. (related to RT #87010)
+   Add support for expanding entities.
+   perl tidy FTW
+   Remove xt/ deps from Build.PL. RT #78039
+   Fix typos. RT #66404
+   Error out if args to new are not in a hash. RT #70654
+
 Jul 17 2013  Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 4.3
 

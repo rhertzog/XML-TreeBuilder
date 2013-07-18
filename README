@@ -41,7 +41,8 @@ See perldoc perlmodinstall for more information on installing modules.
 SUPPORT
 
 Questions, bug reports, useful code bits, and suggestions for this
-module should just be sent to me at sburke@cpan.org
+module should just be sent to Jeff.Fearn@gmail.com or open a ticket in
+the CPAN RT https://rt.cpan.org//Dist/Display.html?Queue=XML-TreeBuilder
 
 
 AVAILABILITY

@@ -7,7 +7,7 @@ use HTML::Tagset ();
 use HTML::Element 4.1 ();
 
 use vars qw(@ISA $VERSION);
-$VERSION = 4.3;
+$VERSION = "4.4_1";
 @ISA     = ('HTML::Element');
 
 # Init:
@@ -121,6 +121,7 @@ L<XML::Generator> for more fun.
 =head1 COPYRIGHT AND DISCLAIMERS
 
 Copyright (c) 2000,2004 Sean M. Burke.  All rights reserved.
+Copyright (c) 2010,2011,2013 Jeff Fearn. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

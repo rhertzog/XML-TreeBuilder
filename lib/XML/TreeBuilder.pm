@@ -7,15 +7,23 @@ use strict;
 use XML::Element ();
 use XML::Parser  ();
 use Carp;
+use IO::File;
+use XML::Catalog;
+use File::Basename;
 use vars qw(@ISA $VERSION);
 
-$VERSION = 4.3;
+$VERSION = "4.4_1";
 @ISA     = ('XML::Element');
 
 #==========================================================================
 sub new {
     my ( $this, $arg ) = @_;
     my $class = ref($this) || $this;
+
+    if ( $arg && ( ref($arg) ne 'HASH' ) ) {
+            croak("new expects an anonymous hash, ->new( { NoExpand => 1, ErrorContext => 2 } ), for it's parameters, not a "
+                . ref($arg) );
+    }
 
     my $NoExpand     = ( delete $arg->{'NoExpand'}     || undef );
     my $ErrorContext = ( delete $arg->{'ErrorContext'} || undef );
@@ -46,7 +54,7 @@ sub new {
             'Default' => sub {
 
                 # Stuff unexpanded entities back on to the stack as is.
-                if (( $self->{'NoExpand'} ) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
+                if ( ( $self->{'NoExpand'} ) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
                     $stack[-1]->push_content( $_[1] );
                 }
                 return;
@@ -152,7 +160,7 @@ sub new {
                 return unless $self->{'_store_declarations'};
                 shift;
                 ## Need this because different entity types set different array entries.
-                no warnings 'uninitialized'; 
+                no warnings 'uninitialized';
                 ( @stack ? $stack[-1] : $self )->push_content(
                     $self->{'_element_class'}->new(
                         '~declaration',
@@ -166,7 +174,8 @@ sub new {
             CdataStart => sub {
                 return unless $self->{'_store_cdata'};
                 shift;
-                push @stack, $self->{'_element_class'}->new('~cdata', 'text' => $_[1]);
+                push @stack, $self->{'_element_class'}
+                    ->new( '~cdata', 'text' => $_[1] );
                 $stack[-2]->push_content( $stack[-1] );
                 return;
             },
@@ -177,9 +186,44 @@ sub new {
                 return;
             },
 
+            ExternEnt => sub {
+                return if ( $self->{NoExpand} );
+                my $xp = shift;
+                my ( $base, $sysid, $pubid ) = @_;
+                my $path = dirname($base);
+                my $file = "$path/$sysid";
+
+                ## remote
+                if ( $pubid && $pubid ne '' ) {
+                    my $catalog = XML::Catalog->new('/etc/xml/catalog');
+                    $file = $catalog->resolve_public($pubid);
+                }
+                my $fh = new IO::File($file);
+                $xp->{_BaseStack} ||= [];
+                $xp->{_FhStack}   ||= [];
+
+                push( @{ $xp->{_BaseStack} }, $base );
+                push( @{ $xp->{_FhStack} },   $fh );
+
+                $xp->base($path);
+                return $fh;
+            },
+
+            ExternEntFin => sub {
+                my ($xp) = @_;
+
+                my $fh = pop( @{ $xp->{_FhStack} } );
+                $fh->close if ($fh);
+
+                my $base = pop( @{ $xp->{_BaseStack} } );
+                $xp->base($base) if ($base);
+            },
+
         },
-        'NoExpand'     => $self->{'NoExpand'},
-        'ErrorContext' => $self->{'ErrorContext'},
+        NoExpand      => $self->{NoExpand},
+        ErrorContext  => $self->{ErrorContext},
+        ParseParamEnt => !$self->{NoExpand},
+        NoLWP         => 0,
     );
 
     return $self;
@@ -291,12 +335,12 @@ Parameters:
 =item NoExpand
 
     Passed to XML::Parser. Do not Expand external entities.
-    Deafult: undef
+    Default: undef
 
 =item ErrorContext
 
     Passed to XML::Parser. Number of context lines to generate on errors.
-    Deafult: undef
+    Default: undef
 
 =back
 
@@ -354,6 +398,7 @@ And for alternate XML document interfaces, L<XML::DOM> and L<XML::Twig>.
 =head1 COPYRIGHT AND DISCLAIMERS
 
 Copyright (c) 2000,2004 Sean M. Burke.  All rights reserved.
+Copyright (c) 2010,2011,2013 Jeff Fearn. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
