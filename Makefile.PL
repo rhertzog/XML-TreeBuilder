@@ -7,13 +7,14 @@ WriteMakefile
           'VERSION_FROM' => 'lib/XML/Element.pm',
           'PREREQ_PM' => {
                            'Devel::Cover' => 0,
+                           'File::Basename' => 0,
                            'HTML::Element' => '4.1',
                            'HTML::Tagset' => '3.02',
+                           'IO::File' => 0,
                            'Module::Build' => 0,
                            'Test::Exception' => 0,
                            'Test::More' => 0,
-                           'Test::Perl::Critic' => 0,
-                           'Test::Pod::Coverage' => 0,
+                           'XML::Catalog' => '0.03',
                            'XML::Parser' => 0
                          },
           'INSTALLDIRS' => 'site',

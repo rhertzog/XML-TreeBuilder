@@ -8,7 +8,7 @@ use XML::Element ();
 use XML::Parser  ();
 use Carp;
 use IO::File;
-use XML::Catalog;
+use XML::Catalog 0.03 ();
 use File::Basename;
 use vars qw(@ISA $VERSION);
 
@@ -21,12 +21,18 @@ sub new {
     my $class = ref($this) || $this;
 
     if ( $arg && ( ref($arg) ne 'HASH' ) ) {
-            croak("new expects an anonymous hash, ->new( { NoExpand => 1, ErrorContext => 2 } ), for it's parameters, not a "
+        croak(
+            q|new expects an anonymous hash, $t->new( { NoExpand => 1, ErrorContext => 2 } ), for it's parameters, not a |
                 . ref($arg) );
     }
 
-    my $NoExpand     = ( delete $arg->{'NoExpand'}     || undef );
-    my $ErrorContext = ( delete $arg->{'ErrorContext'} || undef );
+    my $NoExpand     = ( delete $arg->{NoExpand}     || undef );
+    my $ErrorContext = ( delete $arg->{ErrorContext} || undef );
+    my $catalog
+        = (    delete $arg->{catalog}
+            || $ENV{XML_CATALOG_FILES}
+            || '/etc/xml/catalog' );
+    my $debug = ( delete $arg->{debug} || undef );
 
     if ( %{$arg} ) {
         croak "unknown args: " . join( ", ", keys %{$arg} );
@@ -34,13 +40,11 @@ sub new {
 
     my $self = XML::Element->new('NIL');
     bless $self, $class;    # and rebless
-    $self->{'_element_class'}      = 'XML::Element';
-    $self->{'_store_comments'}     = 0;
-    $self->{'_store_pis'}          = 0;
-    $self->{'_store_declarations'} = 0;
-    $self->{'_store_cdata'}        = 0;
-    $self->{'NoExpand'}            = $NoExpand if ($NoExpand);
-    $self->{'ErrorContext'}        = $ErrorContext if ($ErrorContext);
+    $self->{_element_class}      = 'XML::Element';
+    $self->{_store_comments}     = 0;
+    $self->{_store_pis}          = 0;
+    $self->{_store_declarations} = 0;
+    $self->{_store_cdata}        = 0;
 
     # have to let HTML::Element know there are encoded entities
     $XML::Element::encoded_content = $NoExpand if ($NoExpand);
@@ -49,20 +53,20 @@ sub new {
 
  # Compare the simplicity of this to the sheer nastiness of HTML::TreeBuilder!
 
-    $self->{'_xml_parser'} = XML::Parser->new(
-        'Handlers' => {
-            'Default' => sub {
+    $self->{_xml_parser} = XML::Parser->new(
+        Handlers => {
+            Default => sub {
 
                 # Stuff unexpanded entities back on to the stack as is.
-                if ( ( $self->{'NoExpand'} ) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
+                if ( ($NoExpand) && ( $_[1] =~ /&[^\;]+\;/ ) ) {
                     $stack[-1]->push_content( $_[1] );
                 }
                 return;
             },
-            'Start' => sub {
+            Start => sub {
                 shift;
                 if (@stack) {
-                    push @stack, $self->{'_element_class'}->new(@_);
+                    push @stack, $self->{_element_class}->new(@_);
                     $stack[-2]->push_content( $stack[-1] );
                 }
                 else {
@@ -72,12 +76,12 @@ sub new {
                 }
             },
 
-            'End' => sub { pop @stack; return },
+            End => sub { pop @stack; return },
 
-            'Char' => sub {
+            Char => sub {
 
        # have to escape '&' if we have entities to catch things like &amp;foo;
-                if ( $_[1] eq '&' and $self->{'NoExpand'} ) {
+                if ( $_[1] eq '&' and $NoExpand ) {
                     $stack[-1]->push_content('&amp;');
                 }
                 else {
@@ -85,43 +89,29 @@ sub new {
                 }
             },
 
-            'Comment' => sub {
-                return unless $self->{'_store_comments'};
+            Comment => sub {
+                return unless $self->{_store_comments};
                 ( @stack ? $stack[-1] : $self )
-                    ->push_content( $self->{'_element_class'}
+                    ->push_content( $self->{_element_class}
                         ->new( '~comment', 'text' => $_[1] ) );
                 return;
             },
 
-            'Proc' => sub {
+            Proc => sub {
                 return unless $self->{'_store_pis'};
                 ( @stack ? $stack[-1] : $self )
-                    ->push_content( $self->{'_element_class'}
+                    ->push_content( $self->{_element_class}
                         ->new( '~pi', 'text' => "$_[1] $_[2]" ) );
                 return;
             },
 
-            'Final' => sub {
-
-                # clean up the internal attributes
-                $self->root()->traverse(
-                    sub {
-                        my ( $node, $start ) = @_;
-                        if ( ref $node ) {    # it's an element
-                            $node->attr( 'NoExpand',     undef );
-                            $node->attr( 'ErrorContext', undef );
-                        }
-                    }
-                );
-            },
-
             # And now, declarations:
 
-            'Attlist' => sub {
-                return unless $self->{'_store_declarations'};
+            Attlist => sub {
+                return unless $self->{_store_declarations};
                 shift;
                 ( @stack ? $stack[-1] : $self )->push_content(
-                    $self->{'_element_class'}->new(
+                    $self->{_element_class}->new(
                         '~declaration',
                         'text' => join ' ',
                         'ATTLIST', @_
@@ -130,11 +120,11 @@ sub new {
                 return;
             },
 
-            'Element' => sub {
-                return unless $self->{'_store_declarations'};
+            Element => sub {
+                return unless $self->{_store_declarations};
                 shift;
                 ( @stack ? $stack[-1] : $self )->push_content(
-                    $self->{'_element_class'}->new(
+                    $self->{_element_class}->new(
                         '~declaration',
                         'text' => join ' ',
                         'ELEMENT', @_
@@ -143,88 +133,115 @@ sub new {
                 return;
             },
 
-            'Doctype' => sub {
-                return unless $self->{'_store_declarations'};
+            Doctype => sub {
+                return unless $self->{_store_declarations};
                 shift;
+                ## Need this because different types set different array entries.
+                no warnings 'uninitialized';
                 ( @stack ? $stack[-1] : $self )->push_content(
-                    $self->{'_element_class'}->new(
+                    $self->{_element_class}->new(
                         '~declaration',
-                        'text' => join ' ',
-                        'DOCTYPE', @_
-                    )
+                      'text' => join(' ', ('DOCTYPE', @_)),
+			type => 'DOCTYPE',
+			mytag => $_[0],
+			uri => $_[1],
+			pid => $_[2],                    )
                 );
                 return;
             },
 
-            'Entity' => sub {
-                return unless $self->{'_store_declarations'};
+            Entity => sub {
+                return unless $self->{_store_declarations};
                 shift;
                 ## Need this because different entity types set different array entries.
                 no warnings 'uninitialized';
                 ( @stack ? $stack[-1] : $self )->push_content(
-                    $self->{'_element_class'}->new(
+                    $self->{_element_class}->new(
                         '~declaration',
-                        'text' => join ' ',
-                        'ENTITY', @_
-                    )
+                        'text' => join(' ', ('ENTITY', @_)),
+			type => 'ENTITY',
+			name => $_[0],
+			value => $_[1],                    )
                 );
                 return;
             },
 
             CdataStart => sub {
-                return unless $self->{'_store_cdata'};
+                return unless $self->{_store_cdata};
                 shift;
-                push @stack, $self->{'_element_class'}
-                    ->new( '~cdata', 'text' => $_[1] );
+                push @stack,
+                    $self->{_element_class}->new( '~cdata', 'text' => $_[1] );
                 $stack[-2]->push_content( $stack[-1] );
                 return;
             },
 
             CdataEnd => sub {
-                return unless $self->{'_store_cdata'};
+                return unless $self->{_store_cdata};
                 pop @stack;
                 return;
             },
 
             ExternEnt => sub {
-                return if ( $self->{NoExpand} );
+                return if ($NoExpand);
                 my $xp = shift;
                 my ( $base, $sysid, $pubid ) = @_;
-                my $path = dirname($base);
-                my $file = "$path/$sysid";
+                my $file = "$sysid";
 
-                ## remote
-                if ( $pubid && $pubid ne '' ) {
-                    my $catalog = XML::Catalog->new('/etc/xml/catalog');
-                    $file = $catalog->resolve_public($pubid);
+                if ( $sysid =~ /^http:/ ) {
+## BUGBUG need to catch when there is no local file?
+                    my $cat = XML::Catalog->new($catalog);
+                    $file = $cat->resolve_public($pubid);
+                    $file =~ s/^file:\/\///;
+                    my ( $filename, $directories, $suffix )
+                        = fileparse($file);
+                    $base = $directories;
                 }
-                my $fh = new IO::File($file);
+                elsif ( $sysid =~ /^file:/ ) {
+                    $sysid =~ s/^file:\/\///;
+                    my ( $filename, $directories, $suffix )
+                        = fileparse($sysid);
+                    $base = $directories;
+                }
+                else {
+                    my ( $filename, $directories, $suffix )
+                        = fileparse($base);
+                    $file = "$directories$sysid";
+                }
+                my $fh = new IO::File( $file, "r" );
+                croak "$!" unless $fh;
                 $xp->{_BaseStack} ||= [];
                 $xp->{_FhStack}   ||= [];
 
                 push( @{ $xp->{_BaseStack} }, $base );
                 push( @{ $xp->{_FhStack} },   $fh );
 
-                $xp->base($path);
-                return $fh;
+                $xp->base($base);
+                return ($fh);
             },
 
             ExternEntFin => sub {
-                my ($xp) = @_;
+                return if ($NoExpand);
+                my ($xp) = shift;
 
                 my $fh = pop( @{ $xp->{_FhStack} } );
                 $fh->close if ($fh);
 
                 my $base = pop( @{ $xp->{_BaseStack} } );
                 $xp->base($base) if ($base);
+                return;
             },
 
         },
-        NoExpand      => $self->{NoExpand},
-        ErrorContext  => $self->{ErrorContext},
-        ParseParamEnt => !$self->{NoExpand},
+        NoExpand      => $NoExpand,
+        ErrorContext  => $ErrorContext,
+        ParseParamEnt => !$NoExpand,
         NoLWP         => 0,
     );
+
+#    if ($catalog) {
+#        my $cat = XML::Catalog->new($catalog) or croak "$!";
+#        $self->{_xml_parser}->setHandlers( ExternEnt => $cat->get_handler($self->{_xml_parser}) );
+#    }
 
     return $self;
 }
@@ -246,17 +263,17 @@ sub store_cdata        { shift->_elem( '_store_cdata',        @_ ); }
 #==========================================================================
 
 sub parse {
-    shift->{'_xml_parser'}->parse(@_);
+    shift->{_xml_parser}->parse(@_);
 }
 
 sub parse_file { shift->parsefile(@_) }    # alias
 
 sub parsefile {
-    shift->{'_xml_parser'}->parsefile(@_);
+    shift->{_xml_parser}->parsefile(@_);
 }
 
 sub eof {
-    delete shift->{'_xml_parser'};         # sure, why not?
+    delete shift->{_xml_parser};           # sure, why not?
 }
 
 #==========================================================================
