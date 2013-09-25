@@ -188,9 +188,10 @@ sub new {
                 my $file = "$sysid";
 
                 if ( $sysid =~ /^http:/ ) {
-## BUGBUG need to catch when there is no local file?
+## BUGBUG need to catch when there is no local file
                     my $cat = XML::Catalog->new($catalog);
                     $file = $cat->resolve_public($pubid);
+                    croak("Can't resolve '$pubid'") if(!defined($file) || $file eq '');
                     $file =~ s/^file:\/\///;
                     my ( $filename, $directories, $suffix )
                         = fileparse($file);
