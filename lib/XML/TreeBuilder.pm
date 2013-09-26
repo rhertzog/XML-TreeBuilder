@@ -64,14 +64,24 @@ sub new {
                 return;
             },
             Start => sub {
-                shift;
+                my $xp = shift;
                 if (@stack) {
                     push @stack, $self->{_element_class}->new(@_);
                     $stack[-2]->push_content( $stack[-1] );
                 }
                 else {
                     $self->tag(shift);
-                    while (@_) { $self->attr( splice( @_, 0, 2 ) ) }
+                    my $str = $xp->original_string();
+                    while (@_) {
+                        my ( $attr, $val ) = splice( @_, 0, 2 );
+## BUGBUG This dirty hack is because the $val from XML::Parser isn't correct when $NoExpand is set ... can we fix it?
+## any entity in an attrubute is lost
+## given <doc id="this-&FOO;-attr"> $val is "this--attr" not "this-&FOO;-attr"
+                        if ( $NoExpand && $str =~ /\s$attr="([^"]*\&[^"]*)"/ ) {
+                            $val = $1;
+                        }
+                        $self->attr( $attr, $val );
+                    }
                     push @stack, $self;
                 }
             },
@@ -141,11 +151,12 @@ sub new {
                 ( @stack ? $stack[-1] : $self )->push_content(
                     $self->{_element_class}->new(
                         '~declaration',
-                      'text' => join(' ', ('DOCTYPE', @_)),
-			type => 'DOCTYPE',
-			mytag => $_[0],
-			uri => $_[1],
-			pid => $_[2],                    )
+                        'text' => join( ' ', ( 'DOCTYPE', @_ ) ),
+                        type   => 'DOCTYPE',
+                        mytag  => $_[0],
+                        uri    => $_[1],
+                        pid    => $_[2],
+                    )
                 );
                 return;
             },
@@ -158,10 +169,11 @@ sub new {
                 ( @stack ? $stack[-1] : $self )->push_content(
                     $self->{_element_class}->new(
                         '~declaration',
-                        'text' => join(' ', ('ENTITY', @_)),
-			type => 'ENTITY',
-			name => $_[0],
-			value => $_[1],                    )
+                        'text' => join( ' ', ( 'ENTITY', @_ ) ),
+                        type   => 'ENTITY',
+                        name   => $_[0],
+                        value  => $_[1],
+                    )
                 );
                 return;
             },
@@ -191,7 +203,8 @@ sub new {
 ## BUGBUG need to catch when there is no local file
                     my $cat = XML::Catalog->new($catalog);
                     $file = $cat->resolve_public($pubid);
-                    croak("Can't resolve '$pubid'") if(!defined($file) || $file eq '');
+                    croak("Can't resolve '$pubid'")
+                        if ( !defined($file) || $file eq '' );
                     $file =~ s/^file:\/\///;
                     my ( $filename, $directories, $suffix )
                         = fileparse($file);

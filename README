@@ -1,5 +1,3 @@
-# Time-stamp: "2004-06-10 20:01:55 ADT"
-
 XML::TreeBuilder
 ----------------
 
@@ -41,7 +39,7 @@ See perldoc perlmodinstall for more information on installing modules.
 SUPPORT
 
 Questions, bug reports, useful code bits, and suggestions for this
-module should just be sent to Jeff.Fearn@gmail.com or open a ticket in
+module should just be sent to JFEARN@cpan.org or open a ticket in
 the CPAN RT https://rt.cpan.org//Dist/Display.html?Queue=XML-TreeBuilder
 
 
@@ -50,3 +48,6 @@ AVAILABILITY
 The latest version of this module is available from the Comprehensive
 Perl Archive Network (CPAN).  Visit <http://www.perl.com/CPAN/> to
 find a CPAN site near you.
+
+The source is available on github <https://github.com/jfearn/XML-TreeBuilder>
+
