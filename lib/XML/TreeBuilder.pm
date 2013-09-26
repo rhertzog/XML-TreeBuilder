@@ -75,7 +75,7 @@ sub new {
                     while (@_) {
                         my ( $attr, $val ) = splice( @_, 0, 2 );
 ## BUGBUG This dirty hack is because the $val from XML::Parser isn't correct when $NoExpand is set ... can we fix it?
-## any entity in an attrubute is lost
+## any entity in an attribute is lost
 ## given <doc id="this-&FOO;-attr"> $val is "this--attr" not "this-&FOO;-attr"
                         if ( $NoExpand && $str =~ /\s$attr="([^"]*\&[^"]*)"/ ) {
                             $val = $1;
@@ -251,11 +251,6 @@ sub new {
         ParseParamEnt => !$NoExpand,
         NoLWP         => 0,
     );
-
-#    if ($catalog) {
-#        my $cat = XML::Catalog->new($catalog) or croak "$!";
-#        $self->{_xml_parser}->setHandlers( ExternEnt => $cat->get_handler($self->{_xml_parser}) );
-#    }
 
     return $self;
 }
