@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8' ?>
-<!DOCTYPE p PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
-
-<!ENTITY % BOOK_ENTITIES SYSTEM "Users_Guide.ent">
-%BOOK_ENTITIES;
+<!DOCTYPE p  [
+<!ENTITY % MY_ENTITIES SYSTEM "test.ent">
+%MY_ENTITIES;
 ]>
-<p>Here &amp;foo; There
+<p id="&id;">Here &amp;foo; There
 <![CDATA[
 &foo;
 ]]>
+&foo;
 </p>
 

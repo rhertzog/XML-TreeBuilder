@@ -2,7 +2,7 @@
 
 use warnings;
 use strict;
-use Test::More tests => 6;
+use Test::More tests => 8;
 
 BEGIN {
     use_ok('XML::TreeBuilder');
@@ -62,12 +62,14 @@ $z->store_cdata(1);
 $z->parsefile("t/parse_test.xml");
 like(
     $z->as_XML(),
-    qr{<p>Here &amp;foo; There\n<~cdata text="text">\n&foo;\n</~cdata>\n</p>},
+    qr{<p id="&id;">Here &amp;foo; There\n<~cdata text="text">\n&foo;\n</~cdata>\n&foo;\n</p>},
     'Decoded ampersand and cdata'
 );
 $z->delete_ignorable_whitespace();
 
 my $za = XML::TreeBuilder->new( { NoExpand => 1, ErrorContext => 2 } );
+$za->store_declarations(1);
+$za->store_pis(1);
 $za->store_declarations(1);
 $za->parse(
     qq{<?xml version='1.0' encoding='utf-8' ?>
@@ -92,5 +94,13 @@ like(
     qr/new expects an anonymous hash.* for it's parameters, not a/,
     'new expects a hash'
 );
+ok( $x->same_as($y), "same as" );
 
+my $zb = XML::TreeBuilder->new( { NoExpand => 0, ErrorContext => 2 } );
+$zb->parse_file("t/parse_test.xml");
+like(
+    $zb->as_XML(),
+    qr{<p id="this.is.an.id">Here &foo; There\n\n&foo;\n\nThis is FOO\n</p>},
+    'Expand entity'
+);
 __END__
