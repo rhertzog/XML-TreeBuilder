@@ -1,4 +1,4 @@
-UNRELEASED Jeff Fearn <Jeff.Fearn@gmail.com>
+Thu Oct 03 2013 Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 5.0
 
    Add support for using XML Catalogs. (related to RT #87010)

@@ -14,7 +14,7 @@ WriteMakefile
                            'Module::Build' => 0,
                            'Test::Exception' => 0,
                            'Test::More' => 0,
-                           'XML::Catalog' => '0.03',
+                           'XML::Catalog' => '1.000000',
                            'XML::Parser' => 0
                          },
           'INSTALLDIRS' => 'site',

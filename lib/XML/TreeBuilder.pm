@@ -8,11 +8,11 @@ use XML::Element ();
 use XML::Parser  ();
 use Carp;
 use IO::File;
-use XML::Catalog 0.03 ();
+use XML::Catalog v1.0.0;
 use File::Basename;
 use vars qw(@ISA $VERSION);
 
-$VERSION = "4.4_1";
+$VERSION = '5.0';
 @ISA     = ('XML::Element');
 
 #==========================================================================
@@ -367,6 +367,11 @@ Parameters:
 
     Passed to XML::Parser. Number of context lines to generate on errors.
     Default: undef
+
+=item catalog
+
+    Path to an Oasis XML catalog. Passed to XML::Catalog to resolve entities if NoExpand is not set.
+    Default: $ENV{XML_CATALOG_FILES} || '/etc/xml/catalog'
 
 =back
 
