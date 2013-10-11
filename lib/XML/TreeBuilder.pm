@@ -12,7 +12,7 @@ use XML::Catalog v1.0.0;
 use File::Basename;
 use vars qw(@ISA $VERSION);
 
-$VERSION = '5.0';
+$VERSION = '5.0_1';
 @ISA     = ('XML::Element');
 
 #==========================================================================
@@ -63,21 +63,38 @@ sub new {
                 }
                 return;
             },
+
             Start => sub {
-                my $xp = shift;
+                my $xp  = shift;
+                my $str = $xp->original_string();
                 if (@stack) {
-                    push @stack, $self->{_element_class}->new(@_);
-                    $stack[-2]->push_content( $stack[-1] );
-                }
-                else {
-                    $self->tag(shift);
-                    my $str = $xp->original_string();
+                    my @args;
+                    my $tag = shift(@_);
                     while (@_) {
                         my ( $attr, $val ) = splice( @_, 0, 2 );
 ## BUGBUG This dirty hack is because the $val from XML::Parser isn't correct when $NoExpand is set ... can we fix it?
 ## any entity in an attribute is lost
 ## given <doc id="this-&FOO;-attr"> $val is "this--attr" not "this-&FOO;-attr"
-                        if ( $NoExpand && $str =~ /\s$attr="([^"]*\&[^"]*)"/ ) {
+                        if ( $NoExpand && $str =~ /\s$attr="([^"]*\&[^"]*)"/ )
+                        {
+                            $val = $1;
+                        }
+                        push( @args, $attr, $val );
+                    }
+
+                    unshift( @args, $tag );
+                    push @stack, $self->{_element_class}->new(@args);
+                    $stack[-2]->push_content( $stack[-1] );
+                }
+                else {
+                    $self->tag(shift);
+                    while (@_) {
+                        my ( $attr, $val ) = splice( @_, 0, 2 );
+## BUGBUG This dirty hack is because the $val from XML::Parser isn't correct when $NoExpand is set ... can we fix it?
+## any entity in an attribute is lost
+## given <doc id="this-&FOO;-attr"> $val is "this--attr" not "this-&FOO;-attr"
+                        if ( $NoExpand && $str =~ /\s$attr="([^"]*\&[^"]*)"/ )
+                        {
                             $val = $1;
                         }
                         $self->attr( $attr, $val );

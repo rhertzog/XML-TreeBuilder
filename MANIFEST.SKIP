@@ -45,3 +45,4 @@
 \bARC
 \.spec$
 ^MYMETA.yml$
+^MYMETA\.json$

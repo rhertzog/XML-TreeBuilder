@@ -4,6 +4,7 @@ lib/XML/Element.pm
 lib/XML/TreeBuilder.pm
 Makefile.PL
 MANIFEST
+META.json
 META.yml			Module meta-data (added by MakeMaker)
 README
 t/00about.t
