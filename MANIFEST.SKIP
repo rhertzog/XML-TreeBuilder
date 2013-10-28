@@ -46,3 +46,4 @@
 \.spec$
 ^MYMETA.yml$
 ^MYMETA\.json$
+^META\.json$

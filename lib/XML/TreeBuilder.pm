@@ -8,11 +8,11 @@ use XML::Element ();
 use XML::Parser  ();
 use Carp;
 use IO::File;
-use XML::Catalog v1.0.0;
+use XML::Catalog v1.0.1;
 use File::Basename;
 use vars qw(@ISA $VERSION);
 
-$VERSION = '5.0_1';
+$VERSION = '5.1';
 @ISA     = ('XML::Element');
 
 #==========================================================================
