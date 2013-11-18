@@ -1,4 +1,9 @@
 UNRELEASED
+   Release 5.2
+
+   Fix local path resolution. RT #90464
+
+Mon Oct 28 2013 Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 5.1
 
    Fix entities in attributes only working for root node. RT #89402

@@ -10,9 +10,10 @@ use Carp;
 use IO::File;
 use XML::Catalog v1.0.1;
 use File::Basename;
+use File::Spec;
 use vars qw(@ISA $VERSION);
 
-$VERSION = '5.1';
+$VERSION = '5.1_1';
 @ISA     = ('XML::Element');
 
 #==========================================================================
@@ -227,16 +228,19 @@ sub new {
                         = fileparse($file);
                     $base = $directories;
                 }
-                elsif ( $sysid =~ /^file:/ ) {
-                    $sysid =~ s/^file:\/\///;
-                    my ( $filename, $directories, $suffix )
-                        = fileparse($sysid);
-                    $base = $directories;
-                }
                 else {
-                    my ( $filename, $directories, $suffix )
-                        = fileparse($base);
-                    $file = "$directories$sysid";
+                    $sysid =~ s/^file:\/\/// if ( $sysid =~ /^file:/ );
+
+                    if ( File::Spec->file_name_is_absolute($sysid) ) {
+                        my ( $filename, $directories, $suffix )
+                            = fileparse($sysid);
+                        $base = $directories;
+                    }
+                    else {
+                        my ( $filename, $directories, $suffix )
+                            = fileparse($base);
+                        $file = File::Spec->rel2abs( $sysid, $directories );
+                    }
                 }
                 my $fh = new IO::File( $file, "r" );
                 croak "$!" unless $fh;
