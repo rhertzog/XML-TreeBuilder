@@ -1,4 +1,4 @@
-UNRELEASED
+Mon Dec 9 2013 Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 5.2
 
    Fix local path resolution. RT #90464
