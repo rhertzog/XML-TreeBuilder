@@ -60,9 +60,15 @@ ok( $x->same_as($y), "same as" );
 my $z = XML::TreeBuilder->new( { NoExpand => 1, ErrorContext => 2 } );
 $z->store_cdata(1);
 $z->parsefile("t/parse_test.xml");
-like(
+is(
     $z->as_XML(),
-    qr{<p id="&id;">Here &amp;foo; There\n<~cdata text="text">\n&foo;\n</~cdata>\n&foo;\n</p>},
+    q{<p id="&id;">Here &amp;foo; There
+<![CDATA[
+&foo;
+]]>
+&foo;
+</p>
+},
     'Decoded ampersand and cdata'
 );
 $z->delete_ignorable_whitespace();

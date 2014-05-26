@@ -7,7 +7,7 @@ use HTML::Tagset ();
 use HTML::Element 4.1 ();
 
 use vars qw(@ISA $VERSION);
-$VERSION = '5.2';
+$VERSION = '5.3';
 @ISA     = ('HTML::Element');
 
 # Init:
@@ -23,9 +23,10 @@ foreach my $e (%HTML::Tagset::emptyElement) {
 sub _empty_element_map { \%emptyElement }
 
 *_fold_case      = \&HTML::Element::_fold_case_NOT;
-*starttag        = \&HTML::Element::starttag_XML;
-*endtag          = \&HTML::Element::endtag_XML;
+*starttag        = \&starttag_XML;
+*endtag          = \&endtag_XML;
 *encoded_content = \$HTML::Element::encoded_content;
+*_xml_escape     = \&HTML::Element::_xml_escape;
 
 # TODO: override id with something that looks for xml:id too/instead?
 
@@ -65,6 +66,61 @@ sub delete_ignorable_whitespace {
     return;
 }
 
+sub starttag_XML {
+    my ($self) = @_;
+
+    # and a third parameter to signal emptiness?
+
+    my $name = $self->{'_tag'};
+
+    return $self->{'text'}               if $name eq '~literal';
+    return '<!' . $self->{'text'} . '>'  if $name eq '~declaration';
+    return "<?" . $self->{'text'} . "?>" if $name eq '~pi';
+
+    if ( $name eq '~comment' ) {
+        if ( ref( $self->{'text'} || '' ) eq 'ARRAY' ) {
+
+            # Does this ever get used?  And is this right?
+            $name = join( ' ', @{ $self->{'text'} } );
+        }
+        else {
+            $name = $self->{'text'};
+        }
+        $name =~ s/--/-&#45;/g;    # can't have double --'s in XML comments
+        return "<!-- $name -->";
+    }
+
+    if ( $name eq '~cdata' ) {
+        return "<![CDATA[";
+    }
+
+    my $tag = "<$name";
+    my $val;
+    for ( sort keys %$self ) {     # predictable ordering
+        next if !length $_ or m/^_/s or $_ eq '/';
+
+        # Hm -- what to do if val is undef?
+        # I suppose that shouldn't ever happen.
+        next if !defined( $val = $self->{$_} );    # or ref $val;
+        _xml_escape($val);
+        $tag .= qq{ $_="$val"};
+    }
+    @_ == 3 ? "$tag />" : "$tag>";
+}
+
+sub endtag_XML {
+    my ($self) = @_;
+
+    # and a third parameter to signal emptiness?
+
+    my $name = $self->{'_tag'};
+    if ( $name eq '~cdata' ) {
+        return "]]>";
+    }
+
+    "</$_[0]->{'_tag'}>";
+}
+
 #--------------------------------------------------------------------------
 
 1;
@@ -88,11 +144,27 @@ with no tagname set, assumes ALL all-whitespace nodes are ignorable!
 
 =head2 endtag
 
-Redirects to HTML::Element::endtag_XML
+Redirects to endtag_XML
 
 =head2 starttag
 
-Redirects to HTML::Element::starttag_XML
+Redirects to starttag_XML
+
+
+=head2 starttag_XML
+
+  $start = $h->starttag_XML();
+
+Returns a string representing the complete start tag for the element.
+Except for CDATA.
+
+=head2 endtag_XML
+
+  $end = $h->endtag_XML();
+
+Returns a string representing the complete end tag for this element.
+I.e., "</", tag name, and ">". Except for CDATA.
+
 
 =head1 DESCRIPTION
 

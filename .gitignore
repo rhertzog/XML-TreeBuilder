@@ -19,4 +19,5 @@ build/
 tmp/
 *~
 META.yml
+META.json
 XML-TreeBuilder-*.tar.gz

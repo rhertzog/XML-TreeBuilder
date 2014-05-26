@@ -1,3 +1,9 @@
+UNRELEASED
+   Release 5.3
+   Fix CDATA not being printed properly by as_XML. RT #95970
+   Fix Devel::Cover declared as build_requires but not used RT #93155
+   Fix stupid version number mismatch. RT #93154
+
 Mon Dec 9 2013 Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 5.2
 

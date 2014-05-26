@@ -13,3 +13,4 @@ t/test.ent
 xt/author/zz_perlcritic.t
 xt/author/zz_pod-coverage.t
 xt/author/zz_pod.t
+META.json
