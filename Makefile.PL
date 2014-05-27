@@ -9,7 +9,7 @@ WriteMakefile
   'EXE_FILES' => [],
   'VERSION_FROM' => 'lib/XML/Element.pm',
   'PREREQ_PM' => {
-                   'XML::Catalog' => '1.000001',
+                   'XML::Catalog' => '1.02',
                    'IO::File' => 0,
                    'HTML::Element' => '4.1',
                    'Test::More' => 0,
