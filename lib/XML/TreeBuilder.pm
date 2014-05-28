@@ -13,7 +13,7 @@ use File::Basename;
 use File::Spec;
 use vars qw(@ISA $VERSION);
 
-$VERSION = '5.3';
+$VERSION = '5.4';
 @ISA     = ('XML::Element');
 
 #==========================================================================

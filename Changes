@@ -1,3 +1,7 @@
+Wed May 28 2014  Jeff Fearn <Jeff.Fearn@gmail.com>
+   Release 5.4
+   Do not escape CDATA content.
+
 Tue May 27 2014  Jeff Fearn <Jeff.Fearn@gmail.com>
    Release 5.3
    Fix CDATA not being printed properly by as_XML. RT #95970

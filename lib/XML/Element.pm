@@ -5,9 +5,10 @@ use warnings;
 use strict;
 use HTML::Tagset ();
 use HTML::Element 4.1 ();
+use Carp;
 
 use vars qw(@ISA $VERSION);
-$VERSION = '5.3';
+$VERSION = '5.4';
 @ISA     = ('HTML::Element');
 
 # Init:
@@ -16,6 +17,9 @@ foreach my $e (%HTML::Tagset::emptyElement) {
     $emptyElement{$e} = 1
         if substr( $e, 0, 1 ) eq '~' and $HTML::Tagset::emptyElement{$e};
 }
+
+my $in_cdata = 0;
+my $nillio   = [];
 
 #--------------------------------------------------------------------------
 #Some basic overrides:
@@ -66,6 +70,7 @@ sub delete_ignorable_whitespace {
     return;
 }
 
+## copied from HTML::Element to support CDATDA
 sub starttag_XML {
     my ($self) = @_;
 
@@ -91,6 +96,7 @@ sub starttag_XML {
     }
 
     if ( $name eq '~cdata' ) {
+        $in_cdata = 1;
         return "<![CDATA[";
     }
 
@@ -108,6 +114,7 @@ sub starttag_XML {
     @_ == 3 ? "$tag />" : "$tag>";
 }
 
+## copied from HTML::Element to support CDATDA
 sub endtag_XML {
     my ($self) = @_;
 
@@ -115,10 +122,62 @@ sub endtag_XML {
 
     my $name = $self->{'_tag'};
     if ( $name eq '~cdata' ) {
+        $in_cdata = 0;
         return "]]>";
     }
 
     "</$_[0]->{'_tag'}>";
+}
+
+## copied from HTML::Element to support CDATDA
+sub as_XML {
+
+    my ($self) = @_;
+
+    #my $indent_on = defined($indent) && length($indent);
+    my @xml               = ();
+    my $empty_element_map = $self->_empty_element_map;
+
+    my ( $tag, $node, $start );    # per-iteration scratch
+    $self->traverse(
+        sub {
+            ( $node, $start ) = @_;
+            if ( ref $node ) {     # it's an element
+                $tag = $node->{'_tag'};
+                if ($start) {      # on the way in
+
+                    foreach my $attr ( $node->all_attr_names() ) {
+                        croak("$tag has an invalid attribute name '$attr'")
+                            unless ( $attr eq '/'
+                            || $self->_valid_name($attr) );
+                    }
+
+                    if ( $empty_element_map->{$tag}
+                        and !@{ $node->{'_content'} || $nillio } )
+                    {
+                        push( @xml, $node->starttag_XML( undef, 1 ) );
+                    }
+                    else {
+                        push( @xml, $node->starttag_XML(undef) );
+                    }
+                }
+                else {    # on the way out
+                    unless ( $empty_element_map->{$tag}
+                        and !@{ $node->{'_content'} || $nillio } )
+                    {
+                        push( @xml, $node->endtag_XML() );
+                    }     # otherwise it will have been an <... /> tag.
+                }
+            }
+            else {        # it's just text
+                _xml_escape($node) unless ($in_cdata);
+                push( @xml, $node );
+            }
+            1;            # keep traversing
+        }
+    );
+
+    join( '', @xml, "\n" );
 }
 
 #--------------------------------------------------------------------------
@@ -150,17 +209,22 @@ Redirects to endtag_XML
 
 Redirects to starttag_XML
 
+=head2 as_XML
+
+  $s = $doc->as_XML()
+
+Returns a string representing in XML the element and its descendants.
 
 =head2 starttag_XML
 
-  $start = $h->starttag_XML();
+  $start = $doc->starttag_XML();
 
 Returns a string representing the complete start tag for the element.
 Except for CDATA.
 
 =head2 endtag_XML
 
-  $end = $h->endtag_XML();
+  $end = $doc->endtag_XML();
 
 Returns a string representing the complete end tag for this element.
 I.e., "</", tag name, and ">". Except for CDATA.
