@@ -11,6 +11,7 @@ use IO::File;
 use XML::Catalog 1.02;
 use File::Basename;
 use File::Spec;
+use Encode qw(encode_utf8);
 use vars qw(@ISA $VERSION);
 
 $VERSION = '5.4';
@@ -239,6 +240,8 @@ sub new {
                     else {
                         my ( $filename, $directories, $suffix )
                             = fileparse($base);
+                        $sysid = encode_utf8($sysid) if utf8::is_utf8($sysid);
+                        $directories = encode_utf8($directories) if utf8::is_utf8($directories);
                         $file = File::Spec->rel2abs( $sysid, $directories );
                     }
                 }
